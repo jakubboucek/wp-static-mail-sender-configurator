@@ -2,8 +2,8 @@
 Contributors: jakubboucek
 Tags: wp_mail, sender, mail from, mail sender
 Requires at least: 6.0
-Tested up to: 6.3
-Stable tag: 0.10.0
+Tested up to: 7.1
+Stable tag: 0.10.1
 Requires PHP: 7.4.0
 License: MIT
 License URI: https://github.com/jakubboucek/wp-static-mail-sender-configurator/blob/master/LICENSE
@@ -32,6 +32,11 @@ You can define sender's name too by format:
 Same principe is available by define Environment variable `WP_MAIL_FROM`.
 
 == Changelog ==
+
+= 0.10.1 =
+
+- Verified mail configuration compatibility with WordPress 7.1.4 on PHP 8.5.12 using isolated tests of WordPress mail functions and PHPMailer.
+- Updated the tested WordPress version to 7.1. No runtime behavior changes.
 
 = 0.10.0 =
 
