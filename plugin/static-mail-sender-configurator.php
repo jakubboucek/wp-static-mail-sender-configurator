@@ -95,6 +95,28 @@ class StaticMailSenderConfigurator
         echo esc_html__('Status', 'static-mail-sender-configurator');
         echo '</th><td>' . esc_html($statuses[$configuration['status']]) . '</td></tr></tbody></table>';
 
+        $sender_filters = [
+            'wp_mail_from' => __(
+                'A registered filter may override the sender email address.',
+                'static-mail-sender-configurator'
+            ),
+            'wp_mail_from_name' => __(
+                'A registered filter may override the sender display name.',
+                'static-mail-sender-configurator'
+            ),
+        ];
+        foreach ($sender_filters as $hook => $description) {
+            if (has_filter($hook)) {
+                echo '<div class="notice notice-warning inline"><p><code>' . esc_html($hook) . '</code>: ';
+                echo esc_html($description);
+                echo ' ' . esc_html__(
+                    'This page does not run the filter or determine its result.',
+                    'static-mail-sender-configurator',
+                );
+                echo '</p></div>';
+            }
+        }
+
         echo '<h2>' . esc_html__('How to set up', 'static-mail-sender-configurator') . '</h2><p>';
         echo wp_kses(
             sprintf(

@@ -18,6 +18,8 @@ Plugin is define this configuration with major priority to set configuration as 
 
 Open Tools > Mail Config to inspect the active configuration source, value, and sender format, and view setup instructions. Access requires the `manage_options` capability.
 
+Registered `wp_mail_from` and `wp_mail_from_name` filters trigger warnings about possible sender overrides. The page does not execute these filters or determine their results.
+
 The page is read-only. The PHP constant takes precedence over the environment variable, even if it is empty or invalid. Diagnostic checks do not change mail handling or verify delivery or the final sender.
 
 == Example ==
