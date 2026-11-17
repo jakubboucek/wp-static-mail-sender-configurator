@@ -37,17 +37,18 @@ class StaticMailSenderConfigurator
             __('Mail Config', 'static-mail-sender-configurator'),
             'manage_options',
             'static-mail-sender-configurator',
-            [static::class, 'render_admin_page']
+            [static::class, 'render_admin_page'],
         );
     }
 
     public static function render_admin_page(): void
     {
         if (!current_user_can('manage_options')) {
+            /** @noinspection ForgottenDebugOutputInspection */
             wp_die(
                 esc_html__('Sorry, you are not allowed to access this page.', 'static-mail-sender-configurator'),
                 '',
-                ['response' => 403]
+                ['response' => 403],
             );
         }
 
@@ -63,24 +64,22 @@ class StaticMailSenderConfigurator
         ];
         $statuses = [
             'missing' => __(
-                'Not configured. The plugin leaves mail arguments unchanged.',
-                'static-mail-sender-configurator'
+                '⚪ Not configured. The plugin leaves mail arguments unchanged.',
+                'static-mail-sender-configurator',
             ),
-            'empty' => __('The configured value is empty. Set a sender address.', 'static-mail-sender-configurator'),
+            'empty' => __('◌ The configured value is empty. Set a sender address.', 'static-mail-sender-configurator'),
             'invalid' => __(
-                'Invalid sender format. Use a single email address, optionally with a display name.',
-                'static-mail-sender-configurator'
+                '🚫 Invalid sender format. Use a single email address, optionally with a display name.',
+                'static-mail-sender-configurator',
             ),
             'valid' => __(
-                'The configured sender format is valid. This does not verify delivery.',
-                'static-mail-sender-configurator'
+                '✅ The configured sender format is valid. This does not verify delivery.',
+                'static-mail-sender-configurator',
             ),
         ];
 
-        echo '<h2>' . esc_html__('Configuration', 'static-mail-sender-configurator') . '</h2>';
+        echo '<h2>' . esc_html__('Configuration overview', 'static-mail-sender-configurator') . '</h2>';
         echo '<table class="widefat striped"><tbody><tr><th scope="row">';
-        echo esc_html__('Source', 'static-mail-sender-configurator');
-        echo '</th><td>' . esc_html($sources[$configuration['source']]) . '</td></tr><tr><th scope="row">';
         echo esc_html__('Value', 'static-mail-sender-configurator');
         echo '</th><td>';
         if ($configuration['source'] === 'none') {
@@ -91,25 +90,35 @@ class StaticMailSenderConfigurator
             echo esc_html__('The configured value is not a string.', 'static-mail-sender-configurator');
         }
         echo '</td></tr><tr><th scope="row">';
+        echo esc_html__('Source', 'static-mail-sender-configurator');
+        echo '</th><td>' . esc_html($sources[$configuration['source']]) . '</td></tr><tr><th scope="row">';
         echo esc_html__('Status', 'static-mail-sender-configurator');
         echo '</th><td>' . esc_html($statuses[$configuration['status']]) . '</td></tr></tbody></table>';
 
-        echo '<h2>' . esc_html__('Setup', 'static-mail-sender-configurator') . '</h2><p>';
-        echo esc_html__(
-            'Set WP_MAIL_FROM in wp-config.php before WordPress loads, or in the PHP process environment.',
-            'static-mail-sender-configurator'
+        echo '<h2>' . esc_html__('How to set up', 'static-mail-sender-configurator') . '</h2><p>';
+        echo wp_kses(
+            sprintf(
+                /* translators: 1: Configuration constant in code tags, 2: Configuration filename in code tags. */
+                __(
+                    'Set %1$s in %2$s before WordPress loads, or in the PHP process environment.',
+                    'static-mail-sender-configurator'
+                ),
+                '<code>WP_MAIL_FROM</code>',
+                '<code>wp-config.php</code>',
+            ),
+            ['code' => []],
         );
         echo '</p><pre><code>' . esc_html("define('WP_MAIL_FROM', 'sender@example.com');") . '</code></pre><p>';
         echo esc_html__('To include a display name, use this value:', 'static-mail-sender-configurator');
         echo ' <code>' . esc_html('"Site Name" <sender@example.com>') . '</code></p><p>';
         echo esc_html__(
             'The PHP constant takes precedence over the environment variable, even when it is empty or invalid.',
-            'static-mail-sender-configurator'
+            'static-mail-sender-configurator',
         );
         echo '</p><p>';
         echo esc_html__(
             'This page is read-only. These checks do not change mail handling or verify the final sender.',
-            'static-mail-sender-configurator'
+            'static-mail-sender-configurator',
         );
         echo '</p></div>';
     }
@@ -120,12 +129,10 @@ class StaticMailSenderConfigurator
         if (defined(self::WP_MAIL_FROM_KEY)) {
             $source = 'constant';
             $value = constant(self::WP_MAIL_FROM_KEY);
-        } else {
+        } elseif (false !== ($value = getenv(self::WP_MAIL_FROM_KEY))) {
             $source = 'environment';
-            $value = getenv(self::WP_MAIL_FROM_KEY);
-            if ($value === false) {
-                return ['source' => 'none', 'value' => null, 'status' => 'missing'];
-            }
+        } else {
+            return ['source' => 'none', 'value' => null, 'status' => 'missing'];
         }
 
         $status = 'invalid';
