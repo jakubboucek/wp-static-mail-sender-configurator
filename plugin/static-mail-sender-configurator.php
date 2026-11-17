@@ -73,7 +73,7 @@ class StaticMailSenderConfigurator
                 'static-mail-sender-configurator',
             ),
             'valid' => __(
-                '✅ The configured sender format is valid. This does not verify delivery.',
+                '✅ The configured sender format is valid.',
                 'static-mail-sender-configurator',
             ),
         ];
@@ -97,20 +97,31 @@ class StaticMailSenderConfigurator
 
         $sender_filters = [
             'wp_mail_from' => __(
-                'A registered filter may override the sender email address.',
+                'It may override the sender email address configured by this plugin.',
                 'static-mail-sender-configurator'
             ),
             'wp_mail_from_name' => __(
-                'A registered filter may override the sender display name.',
+                'It may override the sender display name configured by this plugin.',
                 'static-mail-sender-configurator'
             ),
         ];
         foreach ($sender_filters as $hook => $description) {
             if (has_filter($hook)) {
-                echo '<div class="notice notice-warning inline"><p><code>' . esc_html($hook) . '</code>: ';
-                echo esc_html($description);
+                echo '<div class="notice notice-warning inline"><p>';
+                echo wp_kses(
+                    sprintf(
+                        /* translators: 1: Filter name in code tags, 2: Explanation of its effect on the sender. */
+                        __(
+                            'Another component has registered the %1$s filter. %2$s',
+                            'static-mail-sender-configurator'
+                        ),
+                        "<code>$hook</code>",
+                        $description,
+                    ),
+                    ['code' => []],
+                );
                 echo ' ' . esc_html__(
-                    'This page does not run the filter or determine its result.',
+                    'We cannot identify its source. Check mail settings in other plugins or ask your administrator.',
                     'static-mail-sender-configurator',
                 );
                 echo '</p></div>';

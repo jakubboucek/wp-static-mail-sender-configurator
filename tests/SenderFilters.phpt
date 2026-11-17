@@ -52,13 +52,14 @@ class SenderFiltersTest extends Tester\TestCase
             $actual[] = $warning->textContent;
         }
         $descriptions = [
-            'wp_mail_from' => 'A registered filter may override the sender email address.',
-            'wp_mail_from_name' => 'A registered filter may override the sender display name.',
+            'wp_mail_from' => 'It may override the sender email address configured by this plugin.',
+            'wp_mail_from_name' => 'It may override the sender display name configured by this plugin.',
         ];
         $expected = [];
         foreach ($hooks as $hook) {
-            $expected[] = $hook . ': ' . $descriptions[$hook]
-                . ' This page does not run the filter or determine its result.';
+            $expected[] = 'Another component has registered the ' . $hook . ' filter. ' . $descriptions[$hook]
+                . ' We cannot identify its source.'
+                . ' Check mail settings in other plugins or ask your administrator.';
         }
         Assert::same($expected, $actual);
     }
