@@ -49,8 +49,7 @@ class StaticMailSenderConfigurator
 
         if (defined(self::WP_MAIL_FROM_KEY)) {
             $headers[] = "From:" . constant(self::WP_MAIL_FROM_KEY);
-        }
-        elseif (is_string($env = getenv(self::WP_MAIL_FROM_KEY))) {
+        } elseif (is_string($env = getenv(self::WP_MAIL_FROM_KEY))) {
             $headers[] = "From:$env";
         }
 

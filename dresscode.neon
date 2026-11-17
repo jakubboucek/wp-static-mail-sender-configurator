@@ -1,0 +1,17 @@
+use: psr12
+fileExtensions: [php, phpt]
+
+targets:
+	php: '7.4'
+
+paths:
+	- plugin
+	- tests
+	- docker/mail-transport.php
+
+# Preserve the public WordPress hook callback name.
+overrides:
+	-
+		paths: [plugin]
+		naming:
+			method: snake_case

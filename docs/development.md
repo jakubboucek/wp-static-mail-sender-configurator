@@ -140,3 +140,9 @@ bin/test modern --help
 ```
 
 PHP and WordPress test dependencies live in containers. An IDE without those libraries configured as external sources may report unresolved WordPress/Tester symbols; the container test run is the executable check.
+
+## Code quality checks
+
+Run `bin/check` from the repository root. It builds the modern `checks` image and runs DressCode without starting WordPress, MariaDB, or MailDev. Sources are mounted read-only; checks do not rewrite files. Dependencies are pinned in the root Composer lock file and remain outside the plugin distribution.
+
+`dresscode.neon` applies PSR-12 to `plugin/`, PHP and PHPT files in `tests/`, and `docker/mail-transport.php`. Plugin methods use snake_case to preserve the public `wp_mail` callback name. The target is explicitly PHP 7.4, independently of the modern runtime used by the tool. Modernization sets and risky fixes are not enabled. DressCode reports that its own tested target range starts at PHP 8.0; integration tests on PHP 7.4 remain required after code changes.

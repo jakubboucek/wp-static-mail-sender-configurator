@@ -4,6 +4,7 @@
     "type": "project",
     "license": "MIT",
     "require-dev": {
+        "dresscode/dresscode": "^1.4",
         "nette/tester": "~2.6.0"
     },
     "config": {

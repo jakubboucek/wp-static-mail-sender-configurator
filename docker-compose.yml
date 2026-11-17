@@ -1,4 +1,14 @@
 services:
+  checks:
+    profiles: ["checks"]
+    platform: linux/amd64
+    build:
+      context: .
+      dockerfile: docker/checks.Dockerfile
+      args:
+        PHP_IMAGE: ${PHP_IMAGE:?Select an environment using bin/dev}
+    volumes:
+      - .:/workspace:ro
   tests:
     profiles: ["tests"]
     platform: linux/amd64
