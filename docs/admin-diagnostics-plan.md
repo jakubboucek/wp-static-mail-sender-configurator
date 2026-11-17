@@ -1,6 +1,6 @@
 # Admin diagnostics development plan
 
-This temporary WIP plan describes agreed feature behavior and pending implementation stages. The plugin currently has no admin page or automated test environment. Complete, verify, and commit each stage separately before proceeding. Replace this plan with documentation of the implemented behavior and executable development instructions when the work is complete.
+This temporary WIP plan describes agreed feature behavior and pending implementation stages. The plugin currently has no admin page or automated regression suite. The Docker development environment is documented in [Local development](development.md). Complete, verify, and commit each stage separately before proceeding. Replace this plan with documentation of the implemented behavior and executable development instructions when the work is complete.
 
 ## Agreed scope
 
@@ -15,35 +15,17 @@ This temporary WIP plan describes agreed feature behavior and pending implementa
 - Do not inspect PHPMailer or compare the final sender. The `headers` passed to `wp_mail_succeeded` do not contain the parsed `From` address or name. The recipient can inspect the received message.
 - Do not add persistent history, global admin notices, a callback inventory, or a network admin page. Verify the page within an individual Multisite site's admin context.
 
-## Proposed test environment (not yet implemented)
+## Test requirements for remaining work
 
-Use a project-specific Docker Compose environment based on [docker-lamp-devstack](https://github.com/jakubboucek/docker-lamp-devstack). Run PHP, Apache, MariaDB, WP-CLI, Composer, and PHPUnit inside containers; do not use host runtime services or host PHP for checks.
-
-- Web: `jakubboucek/lamp-devstack-php`, with explicitly selected PHP versions. The PHP 7.4 variant uses the `7.4-legacy` tag. Images target `linux/amd64`; account for emulation on ARM hosts.
-- Database: `jakubboucek/lamp-devstack-mysql`, with an explicitly selected MariaDB version. Use separate databases and credentials for interactive development and destructive automated tests.
-- Mail capture: [MailDev](https://maildev.github.io/maildev/), reachable via SMTP only within the Docker network, with its browser UI and MCP endpoint bound to localhost. Pin a release with built-in MCP support and enable it explicitly. Configure the agent connection separately; starting the service does not automatically connect an MCP client. Do not configure external forwarding.
-- Store WordPress core, databases, and generated files in dedicated volumes or ignored development directories. Mount the distribution directory `plugin/` at `wp-content/plugins/static-mail-sender-configurator` so edits appear immediately without ZIP uploads. Prefer a read-only plugin mount for the web service.
-- Configure Apache's document root explicitly using `APACHE_DOCUMENT_ROOT`; the image default is `/var/www/html/www`.
-- Bootstrap WordPress and local test accounts using a pinned compatible WP-CLI version inside the PHP container. Do not assume that the LAMP image already contains WP-CLI.
-- Route local mail to MailDev using a development-only MU plugin that configures SMTP transport through `phpmailer_init`, without changing the sender. This is test infrastructure, not production plugin diagnostics, and must not enter the release package. Verify both HTTP and CLI test paths use this transport.
-- Enable WordPress debug logging in development, with logs excluded from Git and release artifacts.
-- Start with WordPress 6.0 / PHP 7.4 and the current stable WordPress / a supported modern PHP version. Pin exact versions when implementing the environment. Use separate volumes for each matrix target; do not downgrade a shared WordPress database.
-- Use the WordPress PHPUnit test framework matching the selected core version. Pin compatible PHPUnit and PHPUnit Polyfills dependencies per target if necessary. Run constant configuration scenarios in isolated PHP processes because constants cannot be undefined.
-- Keep WordPress core and development dependencies out of the distributed plugin. Add release exclusions or an explicit packaging allowlist when introducing development files.
+Use the Docker environments described in [Local development](development.md). Run all PHP checks inside containers. Add a WordPress PHPUnit test framework matching each core version in stage 1, pin compatible PHPUnit and Polyfills dependencies, and isolate constant configuration scenarios in separate PHP processes. Use only the dedicated test database credentials for destructive test setup. Keep test dependencies outside `plugin/`.
 
 ## Repository layout
 
 `plugin/` contains the distributable PHP file, WordPress readme, and license. The root license also covers the repository. Packaging and installed paths are described in [release documentation](releases.md).
 
-The planned environment will add `tests/`, `docker/`, and `compose.yaml` at the repository root. These development files must remain outside `plugin/`.
+`docker/`, `compose.yaml`, and `bin/dev` provide local development infrastructure. The planned regression suite will add `tests/` at the repository root. These development files remain outside `plugin/`.
 
 ## Pending implementation stages
-
-### 0. Establish the Docker test environment
-
-Create the Compose configuration, reproducible setup commands, isolated databases, WordPress installations, and local mail capture described above. Add executable setup/test instructions only after verifying them.
-
-Acceptance: a clean setup starts successfully; the plugin is activated directly from the source mount; HTTP and CLI use the selected container PHP; test mail reaches MailDev; database reset does not affect the interactive site or other projects; no host runtime services are used.
 
 ### 1. Protect existing behavior with tests
 

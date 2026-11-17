@@ -1,0 +1,56 @@
+services:
+  web:
+    platform: linux/amd64
+    build:
+      context: ./docker
+      args:
+        PHP_IMAGE: ${PHP_IMAGE:?Select an environment using bin/dev}
+    environment:
+      APACHE_DOCUMENT_ROOT: /var/www/html/www
+      WP_VERSION: ${WP_VERSION}
+      SITE_URL: http://localhost:${WEB_PORT}
+      WP_MAIL_FROM: dev-sender@example.test
+    ports:
+      - "127.0.0.1:${WEB_PORT}:80"
+    volumes:
+      - wordpress:/var/www/html/www
+      - ./plugin:/var/www/html/www/wp-content/plugins/static-mail-sender-configurator:ro
+      - ./docker/mail-transport.php:/var/www/html/www/wp-content/mu-plugins/mail-transport.php:ro
+      - ./docker/setup.sh:/opt/dev/setup.sh:ro
+    depends_on:
+      db:
+        condition: service_healthy
+      maildev:
+        condition: service_healthy
+    command: ["bash", "-c", "bash /opt/dev/setup.sh && exec apache2-foreground"]
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost/wp-login.php"]
+      interval: 5s
+      timeout: 5s
+      start_period: 120s
+      retries: 12
+  db:
+    image: jakubboucek/lamp-devstack-mysql:10.11.19
+    platform: linux/amd64
+    environment:
+      MARIADB_ROOT_PASSWORD: local-root
+      MARIADB_DATABASE: wordpress
+      MARIADB_USER: wordpress
+      MARIADB_PASSWORD: local-wordpress
+    volumes:
+      - database:/var/lib/mysql
+      - ./docker/init-tests.sql:/docker-entrypoint-initdb.d/tests.sql:ro
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 3s
+      timeout: 5s
+      retries: 40
+  maildev:
+    image: maildev/maildev:3.0.0
+    environment:
+      MAILDEV_MCP: "true"
+    ports:
+      - "127.0.0.1:${MAIL_PORT}:1080"
+volumes:
+  wordpress:
+  database:
