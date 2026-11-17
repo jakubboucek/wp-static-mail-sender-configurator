@@ -4,11 +4,12 @@
     "type": "project",
     "license": "MIT",
     "require-dev": {
-        "phpunit/phpunit": "9.6.39",
-        "yoast/phpunit-polyfills": "1.1.5"
+        "nette/tester": "~2.6.0"
     },
     "config": {
-        "platform": { "php": "7.4.33" },
+        "platform": {
+            "php": "8.4.27"
+        },
         "allow-plugins": false,
         "sort-packages": true
     }

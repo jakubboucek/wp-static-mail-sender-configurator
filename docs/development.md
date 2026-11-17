@@ -11,7 +11,7 @@ All application runtimes and PHP tooling run in Docker. The host needs Docker wi
 
 Both use `jakubboucek/lamp-devstack-php`, MariaDB 10.11.19 from `jakubboucek/lamp-devstack-mysql`, WP-CLI 2.12.0, and MailDev 3.0.0. The legacy PHP image is pinned by digest. Target versions and ports are configured in `docker/modern.env` and `docker/legacy.env`. PHP 8.4 is the modern baseline for the current tooling; PHP 8.5 is not part of this environment matrix.
 
-`bin/dev` selects a Compose project (`static-mail-modern` or `static-mail-legacy`). Each has separate WordPress and database volumes and its own MailDev inbox. The database and SMTP ports are internal; HTTP ports bind only to localhost. Do not run unrelated projects under these project names.
+`bin/dev` uses `docker-compose.yml` and selects a Compose project (`static-mail-modern` or `static-mail-legacy`). Each has separate WordPress and database bind mounts under `docker/data/<target>/` and its own MailDev inbox. The database and SMTP ports are internal; HTTP ports bind only to localhost. Do not run unrelated projects under these project names.
 
 ## Start and stop
 
@@ -22,7 +22,7 @@ bin/dev modern up -d --build --wait --wait-timeout 180
 bin/dev legacy up -d --build --wait --wait-timeout 180
 ```
 
-The first start downloads the pinned WordPress version, creates its configuration and database tables, creates local accounts, and activates the plugin. Subsequent starts preserve site data. Bootstrap refuses to run a different WordPress version against an existing core volume; use a separate project and volumes when changing core versions.
+The first start downloads the pinned WordPress version, creates its configuration and database tables, creates local accounts, and activates the plugin. Subsequent starts preserve site data. Bootstrap refuses to run a different WordPress version against an existing core directory; use a separate project and data directory when changing core versions.
 
 Local-only accounts (identical on both sites):
 
@@ -40,11 +40,15 @@ bin/dev modern stop
 bin/dev modern start
 ```
 
-Use the corresponding `legacy` commands for the minimum-version site. `down` removes a target's containers and network but preserves its volumes; `down -v` also deletes that target's site and database data. MailDev has no persistent storage, so recreating its container clears its inbox. No commands affect the SVN checkout.
+Use the corresponding `legacy` commands for the minimum-version site. `down` removes a target's containers and network but preserves its bind-mounted data. `down -v` does not delete these host directories. To reset a target, stop and remove its containers before explicitly removing its `docker/data/<target>/` directory. MailDev has no persistent storage, so recreating its container clears its inbox. No commands affect the SVN checkout.
+
+## Persistent data and backups
+
+`docker/data/` is excluded from Git and Docker build contexts. Each target stores WordPress files in `wordpress/` and MariaDB files in `mysql/`. Stop the target with `bin/dev <target> stop` before copying its whole data directory for a consistent filesystem backup; preserve file ownership and permissions. Start it again after copying. Restore backups while containers are stopped. MailDev inboxes are ephemeral.
 
 ## Source files and configuration
 
-`plugin/` is mounted read-only at `/var/www/html/www/wp-content/plugins/static-mail-sender-configurator`. Edit files in Git on the host; no copying or ZIP upload is needed. WordPress core, generated `wp-config.php`, and logs reside in the target's WordPress volume. Development tooling and MU plugins are outside the release directory.
+`plugin/` is mounted read-only at `/var/www/html/www/wp-content/plugins/static-mail-sender-configurator`. Edit files in Git on the host; no copying or ZIP upload is needed. WordPress core, generated `wp-config.php`, and logs reside in `docker/data/<target>/wordpress/`. Development tooling and MU plugins are outside the release directory.
 
 The example environment sets `WP_MAIL_FROM=dev-sender@example.test` for both HTTP and CLI. The plugin still supports a constant in `wp-config.php`, which takes precedence. Change the Compose environment and recreate the web service to test environment configuration; remove the variable entirely to test absence (an empty variable is still present).
 
@@ -59,7 +63,7 @@ bin/dev modern exec -T web wp --allow-root core version
 bin/dev modern exec -T web wp --allow-root plugin status static-mail-sender-configurator
 ```
 
-WP-CLI is installed in the PHP image by `docker/Dockerfile`; the base LAMP image provides Composer. PHPUnit and the WordPress test framework are installed in a separate, disposable `tests` service; see the regression test commands below. The PHP image does not provide a database client for `wp db` commands; use the database container's `mariadb` command instead.
+WP-CLI is installed in the PHP image by `docker/Dockerfile`; the base LAMP image provides Composer. Nette Tester and a separate WordPress installation are installed in a separate, disposable `tests` service; see the regression test commands below. The PHP image does not provide a database client for `wp db` commands; use the database container's `mariadb` command instead.
 
 ## Mail capture and smoke checks
 
@@ -98,7 +102,7 @@ bin/dev modern exec -T db mariadb -uwordpress_tests -plocal-tests \
     -e 'DROP DATABASE wordpress_tests; CREATE DATABASE wordpress_tests;'
 ```
 
-`docker/init-tests.sql` creates the test account on initial database-volume creation. It is not reapplied to an already initialized volume. Modern and legacy databases also remain isolated from each other by separate containers and volumes.
+`docker/init-tests.sql` creates the test account on initial database-directory creation. It is not reapplied to an already initialized database directory. Modern and legacy databases remain isolated by separate containers and bind mounts.
 
 ## Automated regression tests
 
@@ -109,13 +113,15 @@ bin/test legacy
 bin/test modern
 ```
 
-`bin/test` builds the test image using Docker's cache and runs PHPUnit in a disposable container. It starts the target's database if needed, but does not start or recreate the web service or MailDev. The `tests` Compose service belongs to an opt-in profile, so normal `up` commands do not launch tests.
+`bin/test` builds the test image using Docker's cache and runs Nette Tester in a disposable container. It starts the target's database if needed, but does not start or recreate the web service or MailDev. The `tests` Compose service belongs to an opt-in profile, so normal `up` commands do not launch tests.
 
-The image contains PHPUnit 9.6.39 and PHPUnit Polyfills 1.1.5, with transitive dependencies pinned in the root `composer.lock`. These are development dependencies only and are not part of `plugin/`. WordPress core and its PHPUnit framework come from the matching `wordpress-develop` Git tag (`6.0.0` for WordPress 6.0, `7.1.4` for WordPress 7.1.4). The framework loads the actual plugin via `muplugins_loaded`.
+The modern image uses Nette Tester 2.6.3, pinned in the root Composer files. The legacy image uses Tester 2.4.3, pinned in `tests/tools/legacy/`, to support PHP 7.4. Both run the same suite. These development dependencies remain outside `plugin/`. WP-CLI downloads the target's WordPress release and installs it into `wordpress_tests` using only the restricted test account, with the `tester_` table prefix. The bootstrap loads real WordPress through `wp-load.php`, then loads the plugin.
 
-Tests install WordPress into `wordpress_tests` using only the restricted test account. Their core files are inside the disposable container, not the interactive site's volume. Do not run two suites for the same target simultaneously: they share its test database. Modern and legacy can run independently.
+Core files are inside the disposable test container, separate from the interactive site. Tests run sequentially (`-j 1`). Do not run two suites for the same target simultaneously: they share its test database. Modern and legacy can run independently. The test database persists across runs; tests that modify database state must clean up their fixtures.
 
-Every scenario runs in a separate PHP process with global-state preservation disabled, allowing each to define `WP_MAIL_FROM` independently. Environment variables are restored, the mailer is reset, and WordPress's test base class restores hooks after each test.
+The `@testCase` annotation runs every method in a separate PHP process, allowing each scenario to define `WP_MAIL_FROM` independently. The test fixture restores environment variables and hooks and resets the mailer after each test.
+
+The bootstrap disables WordPress's shutdown buffer flush so Tester can manage its own output buffer. Failure artifacts are written to the ignored `tests/output/` directory, mounted writable while test sources remain read-only.
 
 The suite covers:
 
@@ -125,12 +131,12 @@ The suite covers:
 - Overrides by later `wp_mail`, `wp_mail_from`, and `wp_mail_from_name` callbacks.
 - Invalid sender failure and the `wp_mail_failed` event.
 
-Mail tests exercise real WordPress filtering and PHPMailer message construction. WordPress's `MockPHPMailer` replaces only transport, capturing MIME headers and body for assertions. They do not deliver messages to MailDev or external addresses; use the smoke checks above to test SMTP transport. A passing suite does not prove external deliverability.
+Mail tests exercise real WordPress filtering and PHPMailer message construction. The test `CapturedMailer` subclass replaces only PHPMailer transport, capturing MIME headers and body for assertions. They do not deliver messages to MailDev or external addresses; use the smoke checks above to test SMTP transport. A passing suite does not prove external deliverability.
 
-To run a specific scenario:
+To list runner options:
 
 ```sh
-bin/test modern --filter test_constant_takes_precedence_over_environment
+bin/test modern --help
 ```
 
-PHP and WordPress test dependencies live in containers. An IDE without those libraries configured as external sources may report unresolved WordPress/PHPUnit symbols; the container test run is the executable check.
+PHP and WordPress test dependencies live in containers. An IDE without those libraries configured as external sources may report unresolved WordPress/Tester symbols; the container test run is the executable check.

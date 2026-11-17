@@ -4,7 +4,8 @@ cd "$(dirname "$0")/.."
 target=${1:-}
 case "$target" in
     modern|legacy) shift ;;
-    *) echo 'Usage: bin/test modern|legacy [PHPUnit arguments]' >&2; exit 2 ;;
+    *) echo 'Usage: bin/test modern|legacy [Nette Tester arguments]' >&2; exit 2 ;;
 esac
+mkdir -p tests/output
 bin/dev "$target" build tests
-bin/dev "$target" run --rm tests --configuration /workspace/phpunit.xml.dist "$@"
+bin/dev "$target" run --rm tests "$@"

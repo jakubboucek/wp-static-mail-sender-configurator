@@ -6,7 +6,7 @@ if [ ! -f wp-includes/version.php ]; then
 fi
 installed_version=$(wp core version)
 if [ "$installed_version" != "$WP_VERSION" ]; then
-    echo "WordPress volume contains $installed_version; expected $WP_VERSION. Use a separate volume." >&2
+    echo "WordPress data directory contains $installed_version; expected $WP_VERSION. Use a separate data directory." >&2
     exit 1
 fi
 if [ ! -f wp-config.php ]; then

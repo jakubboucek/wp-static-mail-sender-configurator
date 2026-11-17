@@ -17,13 +17,13 @@ This temporary WIP plan describes agreed feature behavior and pending implementa
 
 ## Test requirements for remaining work
 
-Use the Docker environments described in [Local development](development.md). Run all PHP checks inside containers. Keep the WordPress PHPUnit framework matched to each core version, pin compatible PHPUnit and Polyfills dependencies, and isolate constant configuration scenarios in separate PHP processes. Use only the dedicated test database credentials for destructive test setup. Keep test dependencies outside `plugin/`.
+Use the Docker environments described in [Local development](development.md). Run all PHP checks inside containers. Load the matching WordPress release in Nette Tester, pin compatible test dependencies for each PHP target, and isolate constant configuration scenarios in separate PHP processes. Use only the dedicated test database credentials for destructive test setup. Keep test dependencies outside `plugin/`.
 
 ## Repository layout
 
 `plugin/` contains the distributable PHP file, WordPress readme, and license. The root license also covers the repository. Packaging and installed paths are described in [release documentation](releases.md).
 
-`docker/`, `compose.yaml`, and `bin/dev` provide local development infrastructure. `tests/`, `phpunit.xml.dist`, the root Composer files, and `bin/test` provide regression testing. These development files remain outside `plugin/`.
+`docker/`, `docker-compose.yml`, and `bin/dev` provide local development infrastructure. `tests/`, the root Composer files, and `bin/test` provide regression testing. These development files remain outside `plugin/`.
 
 ## Pending implementation stages
 
@@ -60,5 +60,5 @@ Acceptance: all agreed scenarios pass; documentation describes the implemented s
 ## WordPress testing references
 
 - [WP-CLI plugin test scaffolding](https://developer.wordpress.org/cli/commands/scaffold/plugin-tests/) generates a PHPUnit bootstrap and WordPress test-suite installation script; review generated files rather than adopting unrelated tooling automatically.
-- [wp-env](https://developer.wordpress.org/block-editor/reference-guides/packages/packages-env/) is an official local WordPress environment tool with Docker support and matching WordPress PHPUnit files. Custom Compose is proposed here to use the preferred LAMP images directly.
+- [wp-env](https://developer.wordpress.org/block-editor/reference-guides/packages/packages-env/) is an official local WordPress environment tool with Docker support and matching WordPress PHPUnit files. Custom Compose is used here to use the preferred LAMP images directly.
 - [Plugin Check](https://wordpress.org/plugins/plugin-check/) checks WordPress.org requirements and common implementation issues. It complements functional tests; it does not establish correct mail behavior or compatibility with every supported version.

@@ -1,14 +1,14 @@
 ARG PHP_IMAGE=jakubboucek/lamp-devstack-php:8.4.27
 FROM ${PHP_IMAGE}
 WORKDIR /opt/test-tools
-COPY composer.json composer.lock ./
+ARG TESTER_CONFIG=.
+COPY ${TESTER_CONFIG}/composer.json ${TESTER_CONFIG}/composer.lock ./
 RUN composer install --no-interaction --prefer-dist --no-progress
+RUN curl -fsSL https://github.com/wp-cli/wp-cli/releases/download/v2.12.0/wp-cli-2.12.0.phar -o /usr/local/bin/wp \
+    && chmod +x /usr/local/bin/wp
 ARG WP_VERSION
-RUN case "$WP_VERSION" in *.*.*) test_tag="$WP_VERSION" ;; *) test_tag="$WP_VERSION.0" ;; esac \
-    && git clone --depth 1 --filter=blob:none --sparse --branch "$test_tag" \
-       https://github.com/WordPress/wordpress-develop.git /opt/wordpress \
-    && git -C /opt/wordpress sparse-checkout set src tests/phpunit/includes \
-    && rm -rf /opt/wordpress/.git
+RUN mkdir /opt/wordpress \
+    && wp --allow-root core download --path=/opt/wordpress --version="$WP_VERSION"
+COPY docker/run-tests.sh /opt/run-tests.sh
 WORKDIR /workspace
-ENTRYPOINT ["/opt/test-tools/vendor/bin/phpunit"]
-CMD ["--configuration", "/workspace/phpunit.xml.dist"]
+ENTRYPOINT ["bash", "/opt/run-tests.sh"]

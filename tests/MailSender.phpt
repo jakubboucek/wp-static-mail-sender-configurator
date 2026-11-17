@@ -1,62 +1,64 @@
 <?php
 
-use JakubBoucek\WpPlugin\MailSenderConfig\StaticMailSenderConfigurator;
-
 /**
- * Constants cannot be undefined, so every scenario gets a fresh WordPress process.
- *
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
+ * Mail sender integration with real WordPress; each method runs in its own process.
+ * @testCase
  */
-class MailSenderTest extends WP_UnitTestCase
+
+use JakubBoucek\WpPlugin\MailSenderConfig\StaticMailSenderConfigurator;
+use Tester\Assert;
+
+require __DIR__ . '/bootstrap.php';
+
+class MailSenderTest extends Tester\TestCase
 {
     private $originalEnvironment;
+    private $originalHooks;
 
-    public function set_up()
+    protected function setUp()
     {
-        parent::set_up();
+        $this->originalHooks = array_map(static function ($hook) { return clone $hook; }, $GLOBALS['wp_filter']);
         $this->originalEnvironment = getenv('WP_MAIL_FROM');
         putenv('WP_MAIL_FROM');
-        reset_phpmailer_instance();
+        reset_test_mailer();
     }
 
-    public function tear_down()
+    protected function tearDown()
     {
         if ($this->originalEnvironment === false) {
             putenv('WP_MAIL_FROM');
         } else {
             putenv('WP_MAIL_FROM=' . $this->originalEnvironment);
         }
-        reset_phpmailer_instance();
-        // WP_UnitTestCase restores the hook registry after each test.
-        parent::tear_down();
+        reset_test_mailer();
+        $GLOBALS['wp_filter'] = $this->originalHooks;
     }
 
     private function send($headers = '')
     {
-        $this->assertTrue(wp_mail('recipient@example.org', 'Regression test', 'Message body.', $headers));
-        $mailer = tests_retrieve_phpmailer_instance();
-        $message = $mailer->get_sent();
-        $this->assertNotFalse($message);
-        $this->assertSame('recipient@example.org', $mailer->get_recipient('to')->address);
-        $this->assertSame('Regression test', $message->subject);
-        $this->assertStringContainsString('Message body.', $message->body);
+        Assert::true(wp_mail('recipient@example.org', 'Regression test', 'Message body.', $headers));
+        $mailer = get_test_mailer();
+        $message = $mailer->getSent();
+        Assert::notSame(false, $message);
+        Assert::same('recipient@example.org', $mailer->getToAddresses()[0][0]);
+        Assert::same('Regression test', $message->subject);
+        Assert::same('Message body.', trim($message->body));
         return $message;
     }
 
     private function assertSender($email, $name = 'WordPress', $headers = '')
     {
         $message = $this->send($headers);
-        $mailer = tests_retrieve_phpmailer_instance();
-        $this->assertSame($email, $mailer->From);
-        $this->assertSame($name, $mailer->FromName);
-        $this->assertStringContainsString('From: ' . $name . ' <' . $email . '>', $message->header);
+        $mailer = get_test_mailer();
+        Assert::same($email, $mailer->From);
+        Assert::same($name, $mailer->FromName);
+        Assert::contains('From: ' . $name . ' <' . $email . '>', $message->headers);
         return $message;
     }
 
     public function test_registration_uses_early_priority()
     {
-        $this->assertSame(1, has_filter('wp_mail', [StaticMailSenderConfigurator::class, 'wp_mail']));
+        Assert::same(1, has_filter('wp_mail', [StaticMailSenderConfigurator::class, 'wp_mail']));
     }
 
     public function test_absent_configuration_preserves_all_arguments()
@@ -69,7 +71,7 @@ class MailSenderTest extends WP_UnitTestCase
             'attachments' => [],
             'custom' => ['keep' => true],
         ];
-        $this->assertSame($args, apply_filters('wp_mail', $args));
+        Assert::same($args, apply_filters('wp_mail', $args));
         $this->assertSender('existing@example.org', 'Existing', $args['headers']);
     }
 
@@ -102,7 +104,7 @@ class MailSenderTest extends WP_UnitTestCase
         putenv('WP_MAIL_FROM=environment@example.org');
         define('WP_MAIL_FROM', '');
         $args = apply_filters('wp_mail', ['headers' => []]);
-        $this->assertSame(['From:'], $args['headers']);
+        Assert::same(['From:'], $args['headers']);
         // WordPress ignores an empty From value and supplies its own default.
         $this->assertSender('wordpress@example.org');
     }
@@ -111,7 +113,7 @@ class MailSenderTest extends WP_UnitTestCase
     {
         putenv('WP_MAIL_FROM=');
         $args = apply_filters('wp_mail', ['headers' => []]);
-        $this->assertSame(['From:'], $args['headers']);
+        Assert::same(['From:'], $args['headers']);
         $this->assertSender('wordpress@example.org');
     }
 
@@ -134,8 +136,8 @@ class MailSenderTest extends WP_UnitTestCase
             'X-Regression: preserved',
             'Reply-To: reply@example.org',
         ]);
-        $this->assertStringContainsString('X-Regression: preserved', $message->header);
-        $this->assertStringContainsString('Reply-To: reply@example.org', $message->header);
+        Assert::contains('X-Regression: preserved', $message->headers);
+        Assert::contains('Reply-To: reply@example.org', $message->headers);
     }
 
     public function test_crlf_string_headers_preserve_custom_header_and_reply_to()
@@ -143,8 +145,8 @@ class MailSenderTest extends WP_UnitTestCase
         putenv('WP_MAIL_FROM=environment@example.org');
         $message = $this->assertSender('environment@example.org', 'WordPress',
             "X-Regression: preserved\r\nReply-To: reply@example.org");
-        $this->assertStringContainsString('X-Regression: preserved', $message->header);
-        $this->assertStringContainsString('Reply-To: reply@example.org', $message->header);
+        Assert::contains('X-Regression: preserved', $message->headers);
+        Assert::contains('Reply-To: reply@example.org', $message->headers);
     }
 
     public function test_lf_string_headers_and_existing_sender()
@@ -152,7 +154,7 @@ class MailSenderTest extends WP_UnitTestCase
         putenv('WP_MAIL_FROM=environment@example.org');
         $message = $this->assertSender('environment@example.org', 'WordPress',
             "From: original@example.org\nX-Regression: preserved");
-        $this->assertStringContainsString('X-Regression: preserved', $message->header);
+        Assert::contains('X-Regression: preserved', $message->headers);
     }
 
     public function test_later_wp_mail_filter_can_override_sender()
@@ -184,10 +186,12 @@ class MailSenderTest extends WP_UnitTestCase
         add_action('wp_mail_failed', static function ($failure) use (&$error) {
             $error = $failure;
         });
-        $this->assertFalse(wp_mail('recipient@example.org', 'Invalid sender', 'Body'));
-        $this->assertInstanceOf(WP_Error::class, $error);
-        $this->assertSame('wp_mail_failed', $error->get_error_code());
-        $this->assertNotSame('', $error->get_error_message());
-        $this->assertFalse(tests_retrieve_phpmailer_instance()->get_sent());
+        Assert::false(wp_mail('recipient@example.org', 'Invalid sender', 'Body'));
+        Assert::type(WP_Error::class, $error);
+        Assert::same('wp_mail_failed', $error->get_error_code());
+        Assert::notSame('', $error->get_error_message());
+        Assert::false(get_test_mailer()->getSent());
     }
 }
+
+(new MailSenderTest)->run();

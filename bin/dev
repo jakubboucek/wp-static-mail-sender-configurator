@@ -6,4 +6,5 @@ case "$target" in
     modern|legacy) shift ;;
     *) echo 'Usage: bin/dev modern|legacy <docker compose arguments>' >&2; exit 2 ;;
 esac
-exec docker compose --project-name "static-mail-$target" --env-file "docker/$target.env" "$@"
+export DEV_TARGET="$target"
+exec docker compose -f docker-compose.yml --project-name "static-mail-$target" --env-file "docker/$target.env" "$@"
