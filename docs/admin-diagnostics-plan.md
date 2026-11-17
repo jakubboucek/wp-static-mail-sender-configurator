@@ -1,6 +1,6 @@
 # Admin diagnostics development plan
 
-This temporary WIP plan describes agreed feature behavior and pending implementation stages. The plugin currently provides a heading-only Tools > Mail Config page, restricted to users with `manage_options`. Its regression suite protects existing mail behavior. The Docker development environment is documented in [Local development](development.md). Complete, verify, and commit each stage separately before proceeding. Replace this plan with documentation of the implemented behavior and executable development instructions when the work is complete.
+This temporary WIP plan describes agreed feature behavior and pending implementation stages. The plugin currently provides a read-only Tools > Mail Config page showing configuration source, value, format status, and setup guidance, restricted to users with `manage_options`. Its regression suite protects existing mail behavior. The Docker development environment is documented in [Local development](development.md). Complete, verify, and commit each stage separately before proceeding. Replace this plan with documentation of the implemented behavior and executable development instructions when the work is complete.
 
 ## Agreed scope
 
@@ -26,12 +26,6 @@ Use the Docker environments described in [Local development](development.md). Ru
 `docker/`, `docker-compose.yml`, and `bin/dev` provide local development infrastructure. `tests/`, the root Composer files, and `bin/test` provide regression testing. These development files remain outside `plugin/`.
 
 ## Pending implementation stages
-
-### 3. Display configuration status
-
-Show the effective configuration source and value, diagnostic validity, precedence, and setup instructions. Keep diagnostics separate from changes to the existing runtime contract.
-
-Acceptance: verify absent, constant-only, environment-only, both-source, empty, malformed, and named-address cases. Escape HTML-sensitive values. A defined empty constant must not silently fall back to the environment.
 
 ### 4. Explain registered sender filters
 

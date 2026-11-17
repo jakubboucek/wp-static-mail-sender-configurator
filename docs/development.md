@@ -153,6 +153,10 @@ The configuration uses dependency paths inside the checks image. Current WordPre
 
 ## Admin page
 
-Tools > Mail Config opens `wp-admin/tools.php?page=static-mail-sender-configurator`. The menu and rendering callback require `manage_options`. The page currently contains only the translated, escaped heading in WordPress's native wrapper. It does not display configuration or send test messages yet.
+Tools > Mail Config opens `wp-admin/tools.php?page=static-mail-sender-configurator`. The menu and rendering callback require `manage_options`. The page displays the effective source (constant, environment, or absent), escaped value, format status, and setup guidance. It does not send test messages yet.
 
 For browser access checks, use both development targets: the local administrator can see the menu and open the page, while the subscriber has no menu entry and receives HTTP 403 at the direct URL. Use separate browser contexts to preserve the administrator's session.
+
+Configuration diagnostics distinguish absent, empty, invalid, and valid values. A constant always takes precedence, including empty and non-string constants. Non-string values are reported without casting them. Format checks reject line breaks, accept a single address or a display name with an angle-bracketed address, and validate the address with WordPress `is_email()`. This is a format check, not proof of delivery or of the final sender. It does not run sender filters or alter the existing mail filter's behavior.
+
+`tests/Configuration.phpt` verifies configuration states, precedence, named addresses, line-break rejection, non-string constants, and HTML escaping against real WordPress. Each method runs in a separate process so constants cannot leak between scenarios.

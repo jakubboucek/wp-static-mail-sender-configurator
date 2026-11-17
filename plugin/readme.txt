@@ -14,6 +14,12 @@ This plugin is very simple, it doesn't using database or another storage - you j
 
 Plugin is define this configuration with major priority to set configuration as the **default value**, that means any orher plugin with lower priority applied afterwards can simple rewrite that value.
 
+== Administration ==
+
+Open Tools > Mail Config to inspect the active configuration source, value, and sender format, and view setup instructions. Access requires the `manage_options` capability.
+
+The page is read-only. The PHP constant takes precedence over the environment variable, even if it is empty or invalid. Diagnostic checks do not change mail handling or verify delivery or the final sender.
+
 == Example ==
 
 = Using constant in `wp-config.php` file: =

@@ -53,7 +53,97 @@ class StaticMailSenderConfigurator
 
         echo '<div class="wrap"><h1>';
         echo esc_html__('Mail Config', 'static-mail-sender-configurator');
-        echo '</h1></div>';
+        echo '</h1>';
+
+        $configuration = static::get_configuration();
+        $sources = [
+            'constant' => __('PHP constant', 'static-mail-sender-configurator'),
+            'environment' => __('Environment variable', 'static-mail-sender-configurator'),
+            'none' => __('Not configured', 'static-mail-sender-configurator'),
+        ];
+        $statuses = [
+            'missing' => __(
+                'Not configured. The plugin leaves mail arguments unchanged.',
+                'static-mail-sender-configurator'
+            ),
+            'empty' => __('The configured value is empty. Set a sender address.', 'static-mail-sender-configurator'),
+            'invalid' => __(
+                'Invalid sender format. Use a single email address, optionally with a display name.',
+                'static-mail-sender-configurator'
+            ),
+            'valid' => __(
+                'The configured sender format is valid. This does not verify delivery.',
+                'static-mail-sender-configurator'
+            ),
+        ];
+
+        echo '<h2>' . esc_html__('Configuration', 'static-mail-sender-configurator') . '</h2>';
+        echo '<table class="widefat striped"><tbody><tr><th scope="row">';
+        echo esc_html__('Source', 'static-mail-sender-configurator');
+        echo '</th><td>' . esc_html($sources[$configuration['source']]) . '</td></tr><tr><th scope="row">';
+        echo esc_html__('Value', 'static-mail-sender-configurator');
+        echo '</th><td>';
+        if ($configuration['source'] === 'none') {
+            echo esc_html__('Not set', 'static-mail-sender-configurator');
+        } elseif (is_string($configuration['value'])) {
+            echo '<code>' . esc_html($configuration['value']) . '</code>';
+        } else {
+            echo esc_html__('The configured value is not a string.', 'static-mail-sender-configurator');
+        }
+        echo '</td></tr><tr><th scope="row">';
+        echo esc_html__('Status', 'static-mail-sender-configurator');
+        echo '</th><td>' . esc_html($statuses[$configuration['status']]) . '</td></tr></tbody></table>';
+
+        echo '<h2>' . esc_html__('Setup', 'static-mail-sender-configurator') . '</h2><p>';
+        echo esc_html__(
+            'Set WP_MAIL_FROM in wp-config.php before WordPress loads, or in the PHP process environment.',
+            'static-mail-sender-configurator'
+        );
+        echo '</p><pre><code>' . esc_html("define('WP_MAIL_FROM', 'sender@example.com');") . '</code></pre><p>';
+        echo esc_html__('To include a display name, use this value:', 'static-mail-sender-configurator');
+        echo ' <code>' . esc_html('"Site Name" <sender@example.com>') . '</code></p><p>';
+        echo esc_html__(
+            'The PHP constant takes precedence over the environment variable, even when it is empty or invalid.',
+            'static-mail-sender-configurator'
+        );
+        echo '</p><p>';
+        echo esc_html__(
+            'This page is read-only. These checks do not change mail handling or verify the final sender.',
+            'static-mail-sender-configurator'
+        );
+        echo '</p></div>';
+    }
+
+    /** @return array{source: 'constant'|'environment'|'none', value: mixed, status: 'missing'|'empty'|'invalid'|'valid'} */
+    public static function get_configuration(): array
+    {
+        if (defined(self::WP_MAIL_FROM_KEY)) {
+            $source = 'constant';
+            $value = constant(self::WP_MAIL_FROM_KEY);
+        } else {
+            $source = 'environment';
+            $value = getenv(self::WP_MAIL_FROM_KEY);
+            if ($value === false) {
+                return ['source' => 'none', 'value' => null, 'status' => 'missing'];
+            }
+        }
+
+        $status = 'invalid';
+        if (is_string($value) && strpbrk($value, "\r\n") === false) {
+            $address = trim($value);
+            if ($address === '') {
+                $status = 'empty';
+            } else {
+                if (preg_match('/^[^<>]*<([^<>]+)>$/D', $address, $matches) === 1) {
+                    $address = trim($matches[1]);
+                }
+                if (is_email($address) !== false) {
+                    $status = 'valid';
+                }
+            }
+        }
+
+        return ['source' => $source, 'value' => $value, 'status' => $status];
     }
 
     /**
