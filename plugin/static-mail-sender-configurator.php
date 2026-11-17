@@ -128,6 +128,8 @@ class StaticMailSenderConfigurator
             }
         }
 
+        self::render_test_form();
+
         echo '<h2>' . esc_html__('How to set up', 'static-mail-sender-configurator') . '</h2><p>';
         echo wp_kses(
             sprintf(
@@ -150,10 +152,130 @@ class StaticMailSenderConfigurator
         );
         echo '</p><p>';
         echo esc_html__(
-            'This page is read-only. These checks do not change mail handling or verify the final sender.',
+            'Configuration is read-only. These checks do not change mail handling or verify the final sender.',
             'static-mail-sender-configurator',
         );
         echo '</p></div>';
+    }
+
+    private static function render_test_form(): void
+    {
+        $recipient = wp_get_current_user()->user_email;
+        $result = null;
+        if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
+            $recipient = is_string($_POST['recipient'] ?? null) ? trim(wp_unslash($_POST['recipient'])) : '';
+            $result = static::send_test_mail($_POST);
+        }
+
+        echo '<h2>' . esc_html__('Send a test email', 'static-mail-sender-configurator') . '</h2>';
+        if ($result !== null) {
+            echo '<div id="mail-config-result" role="status" class="notice notice-';
+            echo esc_attr($result['status']) . ' inline"><p>' . esc_html($result['message']) . '</p>';
+            if ($result['errors'] !== []) {
+                echo '<ul>';
+                foreach ($result['errors'] as $error) {
+                    echo '<li>' . esc_html($error) . '</li>';
+                }
+                echo '</ul>';
+            }
+            echo '</div>';
+        }
+        echo '<form method="post" action="';
+        echo esc_url(admin_url('tools.php?page=static-mail-sender-configurator')) . '">';
+        wp_nonce_field('mail_config_send_test', 'mail_config_nonce', false);
+        echo '<p><label for="mail-config-recipient">';
+        echo esc_html__('Recipient email address', 'static-mail-sender-configurator');
+        echo '</label><br><input type="email" class="regular-text" id="mail-config-recipient"';
+        echo ' name="recipient" required value="' . esc_attr($recipient) . '"></p>';
+        submit_button(__('Send test email', 'static-mail-sender-configurator'));
+        echo '</form>';
+    }
+
+    /**
+     * @param array<string, mixed> $input Submitted fields with WordPress request slashes.
+     * @return array{status: 'success'|'error'|'warning', message: string, errors: list<string>}
+     */
+    public static function send_test_mail(array $input): array
+    {
+        if (!current_user_can('manage_options')) {
+            return ['status' => 'error', 'message' => __(
+                'You are not allowed to send a test email.',
+                'static-mail-sender-configurator'
+            ), 'errors' => []];
+        }
+        $nonce = $input['mail_config_nonce'] ?? null;
+        if (!is_string($nonce) || wp_verify_nonce(wp_unslash($nonce), 'mail_config_send_test') === false) {
+            return ['status' => 'error', 'message' => __(
+                'The security check failed. Reload the page and try again.',
+                'static-mail-sender-configurator'
+            ), 'errors' => []];
+        }
+        $recipient = is_string($input['recipient'] ?? null) ? trim(wp_unslash($input['recipient'])) : '';
+        if (strpbrk($recipient, "\r\n") !== false || is_email($recipient) === false) {
+            return ['status' => 'error', 'message' => __(
+                'Enter one valid recipient email address.',
+                'static-mail-sender-configurator'
+            ), 'errors' => []];
+        }
+
+        $succeeded = 0;
+        $failed = 0;
+        $errors = [];
+        $on_success = static function () use (&$succeeded): void {
+            $succeeded++;
+        };
+        $on_failure = static function (\WP_Error $error) use (&$failed, &$errors): void {
+            $failed++;
+            foreach ($error->get_error_messages() as $message) {
+                $errors[] = $message;
+            }
+        };
+        add_action('wp_mail_succeeded', $on_success);
+        add_action('wp_mail_failed', $on_failure);
+        $sent = null;
+        $exception = false;
+        try {
+            $sent = wp_mail(
+                $recipient,
+                __('Mail Config test email', 'static-mail-sender-configurator'),
+                sprintf(
+                    /* translators: %s: Plugin name. */
+                    __(
+                        'This is a test email from the %s plugin. Check the sender shown by your email client.',
+                        'static-mail-sender-configurator'
+                    ),
+                    'Static Mail Sender Configurator',
+                ),
+                ['Content-Type: text/plain; charset=UTF-8'],
+            );
+        } catch (\Throwable $error) {
+            $exception = true;
+            $errors[] = $error->getMessage();
+        } finally {
+            remove_action('wp_mail_succeeded', $on_success);
+            remove_action('wp_mail_failed', $on_failure);
+        }
+
+        if (!$exception && $sent === true && $succeeded === 1 && $failed === 0) {
+            return ['status' => 'success', 'message' => __(
+                'WordPress reported successful sending. Check the recipient inbox and spam folder to confirm delivery.',
+                'static-mail-sender-configurator'
+            ), 'errors' => []];
+        }
+        if (!$exception && $sent === false && $failed === 1 && $succeeded === 0) {
+            return ['status' => 'error', 'message' => __(
+                'WordPress reported a sending failure. Review the error below and check your mail settings.',
+                'static-mail-sender-configurator'
+            ), 'errors' => $errors];
+        }
+        return [
+            'status' => 'warning',
+            'message' => __(
+                'Sending could not be confirmed. Check your mail settings and the recipient inbox before retrying.',
+                'static-mail-sender-configurator'
+            ),
+            'errors' => $errors,
+        ];
     }
 
     /** @return array{source: 'constant'|'environment'|'none', value: mixed, status: 'missing'|'empty'|'invalid'|'valid'} */

@@ -153,7 +153,7 @@ The configuration uses dependency paths inside the checks image. Current WordPre
 
 ## Admin page
 
-Tools > Mail Config opens `wp-admin/tools.php?page=static-mail-sender-configurator`. The menu and rendering callback require `manage_options`. The page displays the effective source (constant, environment, or absent), escaped value, format status, and setup guidance. It does not send test messages yet.
+Tools > Mail Config opens `wp-admin/tools.php?page=static-mail-sender-configurator`. The menu and rendering callback require `manage_options`. The page displays the effective source (constant, environment, or absent), escaped value, format status, and setup guidance. The test form defaults to the current user's email and accepts a single recipient.
 
 For browser access checks, use both development targets: the local administrator can see the menu and open the page, while the subscriber has no menu entry and receives HTTP 403 at the direct URL. Use separate browser contexts to preserve the administrator's session.
 
@@ -161,4 +161,14 @@ Configuration diagnostics distinguish absent, empty, invalid, and valid values. 
 
 `tests/Configuration.phpt` verifies configuration states, precedence, named addresses, line-break rejection, non-string constants, and HTML escaping against real WordPress. Each method runs in a separate process so constants cannot leak between scenarios.
 
-The page checks `has_filter()` for `wp_mail_from` and `wp_mail_from_name`. Each registered hook produces an inline warning about possible address or display-name overrides. These warnings describe callbacks present during the admin request; callbacks registered only during mail sending may not be visible. The page neither runs the sender callbacks nor identifies their source or return values. With neither hook registered, no sender-filter warning is shown. `tests/SenderFilters.phpt` covers neither, either, and both hooks, including priority zero, and asserts that rendering does not invoke callbacks.
+The page checks `has_filter()` for `wp_mail_from` and `wp_mail_from_name`. Each registered hook produces an inline warning about possible address or display-name overrides. These warnings describe callbacks present during the admin request; callbacks registered only during mail sending may not be visible. The warning check neither runs sender callbacks nor identifies their source or return values. Sending a test email uses the normal mail pipeline, including registered sender callbacks. With neither hook registered, no sender-filter warning is shown. `tests/SenderFilters.phpt` covers neither, either, and both hooks, including priority zero, and asserts that rendering without a submission does not invoke callbacks.
+
+## Test email submission
+
+The form posts to the same admin page. Both page access and submission require `manage_options`; the handler verifies the `mail_config_send_test` nonce and validates one recipient address before invoking `wp_mail()`. It uses a fixed translated subject and body with a plain-text content-type header. Other mail callbacks may still modify the message. Missing or invalid sender configuration does not prevent a test attempt.
+
+Temporary observers count `wp_mail_succeeded` and `wp_mail_failed` events during the call and collect error messages. A true return with exactly one success and no failure is reported as successful sending; a false return with exactly one failure and no success is a reported failure. Other combinations, missing events, and exceptions are reported as unconfirmed. Error messages are escaped, not raw error objects. Observers are always removed in `finally`; existing observers remain registered. This diagnostic does not inspect PHPMailer or prove delivery or the final sender.
+
+Results and the submitted recipient are rendered in the POST response without redirecting, storing options, creating transients, or retaining history. A fresh GET restores the current user's email and clears the result. Refreshing or resubmitting a POST can send another message; the form does not prevent duplicates.
+
+`tests/TestMail.phpt` covers message contents, missing/invalid configuration, input validation, authorization, nonce rejection, normal and interrupted outcomes, exceptions, observer cleanup, escaped output, and repeated submissions. Tests load WordPress's admin template helpers for form rendering. For an end-to-end local check, submit to a unique `@example.test` recipient and inspect the matching MailDev inbox for recipient, sender, subject, and body.

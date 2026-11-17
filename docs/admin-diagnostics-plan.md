@@ -1,6 +1,6 @@
 # Admin diagnostics development plan
 
-This temporary WIP plan describes agreed feature behavior and pending implementation stages. The plugin currently provides a read-only Tools > Mail Config page showing configuration source, value, format status, sender-filter warnings, and setup guidance, restricted to users with `manage_options`. Its regression suite protects existing mail behavior. The Docker development environment is documented in [Local development](development.md). Complete, verify, and commit each stage separately before proceeding. Replace this plan with documentation of the implemented behavior and executable development instructions when the work is complete.
+This temporary WIP plan describes agreed feature behavior and pending implementation stages. The plugin currently provides a Tools > Mail Config page with read-only configuration, sender-filter warnings, setup guidance, and test email submission, restricted to users with `manage_options`. Its regression suite protects existing mail behavior. The Docker development environment is documented in [Local development](development.md). Complete, verify, and commit each stage separately before proceeding. Replace this plan with documentation of the implemented behavior and executable development instructions when the work is complete.
 
 ## Agreed scope
 
@@ -26,12 +26,6 @@ Use the Docker environments described in [Local development](development.md). Ru
 `docker/`, `docker-compose.yml`, and `bin/dev` provide local development infrastructure. `tests/`, the root Composer files, and `bin/test` provide regression testing. These development files remain outside `plugin/`.
 
 ## Pending implementation stages
-
-### 5. Implement test submission and result reporting
-
-Add the recipient form, POST validation, test message, temporary outcome observers, and immediate result display. Keep execution independent of whether a submit button's value is present.
-
-Acceptance: verify success with captured mail, detailed failure, invalid recipient, rejected nonce, unauthorized POST, and `pre_wp_mail` returning either true or false without standard outcome events. Handle inconsistent observations as incomplete diagnostics. Ensure observers are removed and later emails are unaffected. Inspect the captured recipient, sender, subject, and body in MailDev. Check browser behavior after refresh and resubmission.
 
 ### 6. Verify compatibility and prepare release
 

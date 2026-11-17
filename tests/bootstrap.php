@@ -4,6 +4,7 @@ require_once '/opt/test-tools/vendor/autoload.php';
 Tester\Environment::setup();
 
 require '/opt/wordpress/wp-load.php';
+require_once ABSPATH . 'wp-admin/includes/template.php';
 // Tester owns its output buffer; WordPress must not flush it during shutdown.
 remove_action('shutdown', 'wp_ob_end_flush_all', 1);
 require dirname(__DIR__) . '/plugin/static-mail-sender-configurator.php';
