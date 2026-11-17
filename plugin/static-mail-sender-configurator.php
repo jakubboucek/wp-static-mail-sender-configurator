@@ -33,8 +33,8 @@ class StaticMailSenderConfigurator
     public static function register_admin_page(): void
     {
         add_management_page(
-            __('Mail Sender', 'static-mail-sender-configurator'),
-            __('Mail Sender', 'static-mail-sender-configurator'),
+            __('Mail Config', 'static-mail-sender-configurator'),
+            __('Mail Config', 'static-mail-sender-configurator'),
             'manage_options',
             'static-mail-sender-configurator',
             [static::class, 'render_admin_page']
@@ -52,7 +52,7 @@ class StaticMailSenderConfigurator
         }
 
         echo '<div class="wrap"><h1>';
-        echo esc_html__('Mail Sender', 'static-mail-sender-configurator');
+        echo esc_html__('Mail Config', 'static-mail-sender-configurator');
         echo '</h1></div>';
     }
 

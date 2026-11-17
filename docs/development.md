@@ -153,6 +153,6 @@ The configuration uses dependency paths inside the checks image. Current WordPre
 
 ## Admin page
 
-Tools > Mail Sender opens `wp-admin/tools.php?page=static-mail-sender-configurator`. The menu and rendering callback require `manage_options`. The page currently contains only the translated, escaped heading in WordPress's native wrapper. It does not display configuration or send test messages yet.
+Tools > Mail Config opens `wp-admin/tools.php?page=static-mail-sender-configurator`. The menu and rendering callback require `manage_options`. The page currently contains only the translated, escaped heading in WordPress's native wrapper. It does not display configuration or send test messages yet.
 
 For browser access checks, use both development targets: the local administrator can see the menu and open the page, while the subscriber has no menu entry and receives HTTP 403 at the direct URL. Use separate browser contexts to preserve the administrator's session.

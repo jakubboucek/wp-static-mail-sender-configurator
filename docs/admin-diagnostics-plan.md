@@ -1,11 +1,11 @@
 # Admin diagnostics development plan
 
-This temporary WIP plan describes agreed feature behavior and pending implementation stages. The plugin currently provides a heading-only Tools > Mail Sender page, restricted to users with `manage_options`. Its regression suite protects existing mail behavior. The Docker development environment is documented in [Local development](development.md). Complete, verify, and commit each stage separately before proceeding. Replace this plan with documentation of the implemented behavior and executable development instructions when the work is complete.
+This temporary WIP plan describes agreed feature behavior and pending implementation stages. The plugin currently provides a heading-only Tools > Mail Config page, restricted to users with `manage_options`. Its regression suite protects existing mail behavior. The Docker development environment is documented in [Local development](development.md). Complete, verify, and commit each stage separately before proceeding. Replace this plan with documentation of the implemented behavior and executable development instructions when the work is complete.
 
 ## Agreed scope
 
 - Preserve PHP 7.4 and WordPress 6.0 compatibility, the priority-1 `wp_mail` filter, and constant-over-environment precedence.
-- Add Tools > Mail Sender using `manage_options` for both page access and test submission. Use native WordPress UI and translatable English strings.
+- Add Tools > Mail Config using `manage_options` for both page access and test submission. Use native WordPress UI and translatable English strings.
 - Show configuration read-only: active source, value, validity, and setup guidance. Do not add database settings or change existing mail behavior through diagnostic validation.
 - Detect callbacks on `wp_mail_from` and `wp_mail_from_name` using `has_filter()`. Explain that they may override the configured sender. Do not execute callbacks for preview, infer their return values, or identify their originating plugins.
 - Accept one recipient address, initially populated from the current user's email. Use a fixed plain-text test message and the normal `wp_mail()` pipeline, including when plugin configuration is missing or invalid.
