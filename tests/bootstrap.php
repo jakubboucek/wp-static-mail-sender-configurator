@@ -13,18 +13,24 @@ require_once ABSPATH . WPINC . '/PHPMailer/Exception.php';
 // Keep real WordPress filtering and MIME construction; replace only delivery.
 class CapturedMailer extends PHPMailer\PHPMailer\PHPMailer
 {
+    /** @var false|object{headers: list<string>, subject: string, body: string} */
     private $sent = false;
 
     public function postSend()
     {
+        $headers = preg_split('/\r?\n/', trim($this->MIMEHeader . $this->mailHeader));
+        if ($headers === false) {
+            throw new RuntimeException('Cannot split captured message headers.');
+        }
         $this->sent = (object) [
-            'headers' => preg_split('/\r?\n/', trim($this->MIMEHeader . $this->mailHeader)),
+            'headers' => $headers,
             'subject' => $this->Subject,
             'body' => $this->MIMEBody,
         ];
         return true;
     }
 
+    /** @return false|object{headers: list<string>, subject: string, body: string} */
     public function getSent()
     {
         return $this->sent;

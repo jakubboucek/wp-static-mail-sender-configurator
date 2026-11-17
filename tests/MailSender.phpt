@@ -12,14 +12,18 @@ require __DIR__ . '/bootstrap.php';
 
 class MailSenderTest extends Tester\TestCase
 {
+    /** @var string|false */
     private $originalEnvironment;
+    /** @var array<string, WP_Hook> */
     private $originalHooks;
 
     protected function setUp()
     {
-        $this->originalHooks = array_map(static function ($hook) {
+        /** @var array<string, WP_Hook> $hooks */
+        $hooks = $GLOBALS['wp_filter'];
+        $this->originalHooks = array_map(static function (WP_Hook $hook): WP_Hook {
             return clone $hook;
-        }, $GLOBALS['wp_filter']);
+        }, $hooks);
         $this->originalEnvironment = getenv('WP_MAIL_FROM');
         putenv('WP_MAIL_FROM');
         reset_test_mailer();
@@ -36,19 +40,29 @@ class MailSenderTest extends Tester\TestCase
         $GLOBALS['wp_filter'] = $this->originalHooks;
     }
 
-    private function send($headers = '')
+    /**
+     * @param string|list<string> $headers
+     * @return object{headers: list<string>, subject: string, body: string}
+     */
+    private function send($headers = ''): object
     {
         Assert::true(wp_mail('recipient@example.org', 'Regression test', 'Message body.', $headers));
         $mailer = get_test_mailer();
         $message = $mailer->getSent();
-        Assert::notSame(false, $message);
+        if ($message === false) {
+            throw new RuntimeException('The mail transport did not capture a message.');
+        }
         Assert::same('recipient@example.org', $mailer->getToAddresses()[0][0]);
         Assert::same('Regression test', $message->subject);
         Assert::same('Message body.', trim($message->body));
         return $message;
     }
 
-    private function assertSender($email, $name = 'WordPress', $headers = '')
+    /**
+     * @param string|list<string> $headers
+     * @return object{headers: list<string>, subject: string, body: string}
+     */
+    private function assertSender(string $email, string $name = 'WordPress', $headers = ''): object
     {
         $message = $this->send($headers);
         $mailer = get_test_mailer();
@@ -58,12 +72,12 @@ class MailSenderTest extends Tester\TestCase
         return $message;
     }
 
-    public function testRegistrationUsesEarlyPriority()
+    public function testRegistrationUsesEarlyPriority(): void
     {
         Assert::same(1, has_filter('wp_mail', [StaticMailSenderConfigurator::class, 'wp_mail']));
     }
 
-    public function testAbsentConfigurationPreservesAllArguments()
+    public function testAbsentConfigurationPreservesAllArguments(): void
     {
         $args = [
             'to' => 'recipient@example.org',
@@ -77,31 +91,31 @@ class MailSenderTest extends Tester\TestCase
         $this->assertSender('existing@example.org', 'Existing', $args['headers']);
     }
 
-    public function testAbsentConfigurationUsesWordpressDefaultSender()
+    public function testAbsentConfigurationUsesWordpressDefaultSender(): void
     {
         $this->assertSender('wordpress@example.org');
     }
 
-    public function testEnvironmentAddress()
+    public function testEnvironmentAddress(): void
     {
         putenv('WP_MAIL_FROM=environment@example.org');
         $this->assertSender('environment@example.org');
     }
 
-    public function testConstantAddress()
+    public function testConstantAddress(): void
     {
         define('WP_MAIL_FROM', 'constant@example.org');
         $this->assertSender('constant@example.org');
     }
 
-    public function testConstantTakesPrecedenceOverEnvironment()
+    public function testConstantTakesPrecedenceOverEnvironment(): void
     {
         putenv('WP_MAIL_FROM=environment@example.org');
         define('WP_MAIL_FROM', 'constant@example.org');
         $this->assertSender('constant@example.org');
     }
 
-    public function testEmptyConstantDoesNotFallBackToEnvironment()
+    public function testEmptyConstantDoesNotFallBackToEnvironment(): void
     {
         putenv('WP_MAIL_FROM=environment@example.org');
         define('WP_MAIL_FROM', '');
@@ -111,7 +125,7 @@ class MailSenderTest extends Tester\TestCase
         $this->assertSender('wordpress@example.org');
     }
 
-    public function testEmptyEnvironmentIsDistinctFromMissingConfiguration()
+    public function testEmptyEnvironmentIsDistinctFromMissingConfiguration(): void
     {
         putenv('WP_MAIL_FROM=');
         $args = apply_filters('wp_mail', ['headers' => []]);
@@ -119,19 +133,19 @@ class MailSenderTest extends Tester\TestCase
         $this->assertSender('wordpress@example.org');
     }
 
-    public function testNamedEnvironmentSender()
+    public function testNamedEnvironmentSender(): void
     {
         putenv('WP_MAIL_FROM="Environment Sender" <environment@example.org>');
         $this->assertSender('environment@example.org', 'Environment Sender');
     }
 
-    public function testNamedConstantSender()
+    public function testNamedConstantSender(): void
     {
         define('WP_MAIL_FROM', '"Constant Sender" <constant@example.org>');
         $this->assertSender('constant@example.org', 'Constant Sender');
     }
 
-    public function testArrayHeadersPreserveCustomHeaderAndReplyTo()
+    public function testArrayHeadersPreserveCustomHeaderAndReplyTo(): void
     {
         putenv('WP_MAIL_FROM=environment@example.org');
         $message = $this->assertSender('environment@example.org', 'WordPress', [
@@ -142,7 +156,7 @@ class MailSenderTest extends Tester\TestCase
         Assert::contains('Reply-To: reply@example.org', $message->headers);
     }
 
-    public function testCrlfStringHeadersPreserveCustomHeaderAndReplyTo()
+    public function testCrlfStringHeadersPreserveCustomHeaderAndReplyTo(): void
     {
         putenv('WP_MAIL_FROM=environment@example.org');
         $message = $this->assertSender(
@@ -154,7 +168,7 @@ class MailSenderTest extends Tester\TestCase
         Assert::contains('Reply-To: reply@example.org', $message->headers);
     }
 
-    public function testLfStringHeadersAndExistingSender()
+    public function testLfStringHeadersAndExistingSender(): void
     {
         putenv('WP_MAIL_FROM=environment@example.org');
         $message = $this->assertSender(
@@ -165,7 +179,7 @@ class MailSenderTest extends Tester\TestCase
         Assert::contains('X-Regression: preserved', $message->headers);
     }
 
-    public function testLaterWpMailFilterCanOverrideSender()
+    public function testLaterWpMailFilterCanOverrideSender(): void
     {
         putenv('WP_MAIL_FROM=environment@example.org');
         add_filter('wp_mail', static function ($args) {
@@ -175,7 +189,7 @@ class MailSenderTest extends Tester\TestCase
         $this->assertSender('later@example.org', 'Later Sender');
     }
 
-    public function testSenderFiltersCanOverrideAddressAndName()
+    public function testSenderFiltersCanOverrideAddressAndName(): void
     {
         define('WP_MAIL_FROM', '"Configured Sender" <constant@example.org>');
         add_filter('wp_mail_from', static function ($from) {
@@ -187,7 +201,7 @@ class MailSenderTest extends Tester\TestCase
         $this->assertSender('filtered@example.org', 'Filtered Sender');
     }
 
-    public function testInvalidSenderReportsFailureWithoutSending()
+    public function testInvalidSenderReportsFailureWithoutSending(): void
     {
         define('WP_MAIL_FROM', 'not-an-email');
         $error = null;

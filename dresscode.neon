@@ -8,6 +8,7 @@ paths:
 	- plugin
 	- tests
 	- docker/mail-transport.php
+	- docker/phpstan-bootstrap.php
 
 # Preserve the public WordPress hook callback name.
 overrides:

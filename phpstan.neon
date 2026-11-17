@@ -1,0 +1,22 @@
+includes:
+	- /opt/test-tools/vendor/szepeviktor/phpstan-wordpress/extension.neon
+
+parameters:
+	level: 8
+	phpVersion: 70400
+	tmpDir: /tmp/phpstan
+	fileExtensions: [php, phpt]
+	bootstrapFiles:
+		- docker/phpstan-bootstrap.php
+	ignoreErrors:
+		# WordPress is installed only in the integration-test image, not the checks image.
+		-
+			identifier: require.fileNotFound
+			path: tests/bootstrap.php
+			message: '#/opt/wordpress/wp-load\.php#'
+			count: 1
+	paths:
+		- plugin
+		- tests
+		- docker/mail-transport.php
+		- docker/phpstan-bootstrap.php

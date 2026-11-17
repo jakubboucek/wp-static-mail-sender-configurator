@@ -3,3 +3,4 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 bin/dev modern build checks
 bin/dev modern run --rm --no-deps checks php /opt/test-tools/vendor/bin/dresscode check --no-cache
+bin/dev modern run --rm --no-deps checks php /opt/test-tools/vendor/bin/phpstan analyse --no-progress

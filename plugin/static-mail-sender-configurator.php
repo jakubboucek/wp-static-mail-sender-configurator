@@ -29,6 +29,10 @@ class StaticMailSenderConfigurator
         add_filter('wp_mail', [static::class, 'wp_mail'], 1);
     }
 
+    /**
+     * @param array<string, mixed> $atts Mail arguments, including any third-party fields.
+     * @return array<string, mixed>
+     */
     public static function wp_mail(array $atts): array
     {
         if (defined(self::WP_MAIL_FROM_KEY) === false && getenv(self::WP_MAIL_FROM_KEY) === false) {
