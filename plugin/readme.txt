@@ -14,6 +14,18 @@ This plugin is very simple, it doesn't using database or another storage - you j
 
 Plugin is define this configuration with major priority to set configuration as the **default value**, that means any orher plugin with lower priority applied afterwards can simple rewrite that value.
 
+== Administration ==
+
+Open Tools > Mail Config to inspect the active configuration source, value, and sender format, and view setup instructions. Access requires the `manage_options` capability.
+
+Registered `wp_mail_from` and `wp_mail_from_name` filters trigger warnings about possible sender overrides. The page does not execute these filters or determine their results.
+
+Configuration is read-only. The PHP constant takes precedence over the environment variable, even if it is empty or invalid. Diagnostic checks do not change mail handling or verify delivery or the final sender.
+
+Use the test email form to send a plain-text message to one address. The form starts with your account email. It reports sending success, failure details, or an unconfirmed result when mail handling does not provide a consistent outcome. Successful sending does not guarantee delivery: check the recipient inbox and spam folder.
+
+Test results are not stored. Refreshing or resubmitting the form may send another email.
+
 == Example ==
 
 = Using constant in `wp-config.php` file: =
