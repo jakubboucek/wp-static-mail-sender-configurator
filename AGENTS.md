@@ -5,6 +5,7 @@
 - This Git repository is the development source of truth. Make code and documentation changes here.
 - WordPress Plugin Directory releases use a separate SVN working copy. Regular development does not include synchronizing or publishing releases; perform those operations only when explicitly requested.
 - See [SVN working copy setup](docs/releases.md) for repository access and directory layout. Local checkout paths are developer-specific and are not part of the project configuration.
+- See the [admin diagnostics development plan](docs/admin-diagnostics-plan.md) for the staged feature work and proposed Docker testing environment. This is a temporary WIP plan; consolidate it into current-state documentation when the work is complete.
 
 ## Language and documentation
 
@@ -16,9 +17,10 @@
 
 ## Structure and behavior
 
-- `static-mail-sender-configurator.php` contains the entire plugin: metadata, the `JakubBoucek\WpPlugin\MailSenderConfig\StaticMailSenderConfigurator` class, and registration when the file is loaded.
-- `readme.txt` contains the description, configuration examples, compatibility metadata, and changelog in WordPress Plugin Directory format.
-- `LICENSE` contains the MIT license.
+- `plugin/static-mail-sender-configurator.php` contains the entire plugin: metadata, the `JakubBoucek\WpPlugin\MailSenderConfig\StaticMailSenderConfigurator` class, and registration when the file is loaded.
+- `plugin/readme.txt` contains the description, configuration examples, compatibility metadata, and changelog in WordPress Plugin Directory format.
+- `LICENSE` contains the repository MIT license; `plugin/LICENSE` is its identical distribution copy. Keep both copies in sync.
+- `plugin/` is the distribution root. Mount it as `wp-content/plugins/static-mail-sender-configurator`; package its contents under `static-mail-sender-configurator/` in the ZIP and directly under SVN `trunk/`.
 - The plugin registers a `wp_mail` filter at priority `1`, allowing later filters to override the default sender. Preserve this early priority.
 - `WP_MAIL_FROM` is read from a PHP constant or an environment variable. The constant takes precedence. If neither is defined, the filter returns its input unchanged.
 - The filter converts string headers into an array and appends a `From:` header. The configured value may include both a sender name and an email address.
@@ -27,6 +29,7 @@
 ## Compatibility and validation
 
 - The declared minimum versions are PHP 7.4.0 and WordPress 6.0. Do not introduce newer PHP syntax without an intentional change to supported versions.
-- When changing the release version, keep the PHP header's `Version`, the `Stable tag` in `readme.txt`, and the changelog consistent. PHP and WordPress requirements appear in both files and must remain consistent as well.
-- The repository has no Composer setup, frontend build, or automated test suite. Check PHP syntax with `php -l static-mail-sender-configurator.php`.
+- When changing the release version, keep the PHP header's `Version`, the `Stable tag` in `plugin/readme.txt`, and the changelog consistent. PHP and WordPress requirements appear in both files and must remain consistent as well.
+- The repository has no Composer setup, frontend build, or automated test suite. Inside the PHP container, check syntax with `php -l` against the mounted `plugin/static-mail-sender-configurator.php` file (using its container path).
 - For behavior changes, verify missing configuration, constant-only configuration, environment-only configuration, and both sources together; string and array headers; and subsequent sender overrides. Verify integration in WordPress: syntax checks alone do not establish correct behavior.
+- Run the development site, database, PHP checks, and test tooling in Docker. Do not use host PHP, Apache, or MySQL for this development environment. Prefer the `jakubboucek/docker-lamp-devstack` images. WordPress core and generated environment data must remain outside tracked plugin source files.
