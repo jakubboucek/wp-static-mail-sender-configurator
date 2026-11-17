@@ -25,7 +25,8 @@
 - The plugin registers a `wp_mail` filter at priority `1`, allowing later filters to override the default sender. Preserve this early priority.
 - `WP_MAIL_FROM` is read from a PHP constant or an environment variable. The constant takes precedence. If neither is defined, the filter returns its input unchanged.
 - The filter converts string headers into an array and appends a `From:` header. The configured value may include both a sender name and an email address.
-- The plugin has no administration interface, database storage, or external dependencies.
+- Tools > Mail Sender is registered through `admin_menu` and requires `manage_options`. The rendering callback also checks the capability. The page currently displays only its translated, escaped heading. It has no configuration display or test submission yet.
+- The plugin has no database storage or external runtime dependencies.
 
 ## Compatibility and validation
 

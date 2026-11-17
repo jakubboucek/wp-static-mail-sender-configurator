@@ -27,6 +27,33 @@ class StaticMailSenderConfigurator
     {
         /** @see \add_filter() from wp-includes/plugin.php */
         add_filter('wp_mail', [static::class, 'wp_mail'], 1);
+        add_action('admin_menu', [static::class, 'register_admin_page']);
+    }
+
+    public static function register_admin_page(): void
+    {
+        add_management_page(
+            __('Mail Sender', 'static-mail-sender-configurator'),
+            __('Mail Sender', 'static-mail-sender-configurator'),
+            'manage_options',
+            'static-mail-sender-configurator',
+            [static::class, 'render_admin_page']
+        );
+    }
+
+    public static function render_admin_page(): void
+    {
+        if (!current_user_can('manage_options')) {
+            wp_die(
+                esc_html__('Sorry, you are not allowed to access this page.', 'static-mail-sender-configurator'),
+                '',
+                ['response' => 403]
+            );
+        }
+
+        echo '<div class="wrap"><h1>';
+        echo esc_html__('Mail Sender', 'static-mail-sender-configurator');
+        echo '</h1></div>';
     }
 
     /**

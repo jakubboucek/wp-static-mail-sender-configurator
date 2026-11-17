@@ -150,3 +150,9 @@ Run `bin/check` from the repository root. It builds the modern `checks` image an
 `phpstan.neon` checks the same source paths at level 8 with `phpVersion: 70400`, without a baseline. It uses `szepeviktor/phpstan-wordpress` and its WordPress stubs for hooks and API symbols. PHPMailer is a development-only dependency for static analysis of the captured test transport; integration tests explicitly load the PHPMailer bundled with their WordPress release. Static checks do not execute the integration-test bootstrap or connect to a database. `docker/phpstan-bootstrap.php` loads the legacy Tester autoloader so PHPStan sees PHP 7.4-compatible signatures and defines the WordPress include-directory constant. One narrowly scoped exception permits the reference to `/opt/wordpress/wp-load.php`, which exists only in the integration-test image; other missing includes remain errors.
 
 The configuration uses dependency paths inside the checks image. Current WordPress stubs describe a modern API, so a clean PHPStan result does not establish WordPress 6.0 compatibility. Run `bin/test legacy` and `bin/test modern` after code changes. The checks command returns a nonzero exit code on failure and can be used in CI.
+
+## Admin page
+
+Tools > Mail Sender opens `wp-admin/tools.php?page=static-mail-sender-configurator`. The menu and rendering callback require `manage_options`. The page currently contains only the translated, escaped heading in WordPress's native wrapper. It does not display configuration or send test messages yet.
+
+For browser access checks, use both development targets: the local administrator can see the menu and open the page, while the subscriber has no menu entry and receives HTTP 403 at the direct URL. Use separate browser contexts to preserve the administrator's session.

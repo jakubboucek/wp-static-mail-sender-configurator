@@ -1,6 +1,6 @@
 # Admin diagnostics development plan
 
-This temporary WIP plan describes agreed feature behavior and pending implementation stages. The plugin currently has no admin page. Its regression suite protects existing mail behavior. The Docker development environment is documented in [Local development](development.md). Complete, verify, and commit each stage separately before proceeding. Replace this plan with documentation of the implemented behavior and executable development instructions when the work is complete.
+This temporary WIP plan describes agreed feature behavior and pending implementation stages. The plugin currently provides a heading-only Tools > Mail Sender page, restricted to users with `manage_options`. Its regression suite protects existing mail behavior. The Docker development environment is documented in [Local development](development.md). Complete, verify, and commit each stage separately before proceeding. Replace this plan with documentation of the implemented behavior and executable development instructions when the work is complete.
 
 ## Agreed scope
 
@@ -26,12 +26,6 @@ Use the Docker environments described in [Local development](development.md). Ru
 `docker/`, `docker-compose.yml`, and `bin/dev` provide local development infrastructure. `tests/`, the root Composer files, and `bin/test` provide regression testing. These development files remain outside `plugin/`.
 
 ## Pending implementation stages
-
-### 2. Add the admin page and access controls
-
-Register Tools > Mail Sender with `manage_options`. Keep the initial page minimal and use native WordPress markup.
-
-Acceptance: authorized users can open it; unauthorized users cannot see the menu or access the URL directly; existing mail tests still pass.
 
 ### 3. Display configuration status
 
