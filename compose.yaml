@@ -1,4 +1,20 @@
 services:
+  tests:
+    profiles: ["tests"]
+    platform: linux/amd64
+    build:
+      context: .
+      dockerfile: docker/tests.Dockerfile
+      args:
+        PHP_IMAGE: ${PHP_IMAGE:?Select an environment using bin/dev}
+        WP_VERSION: ${WP_VERSION}
+    volumes:
+      - ./plugin:/workspace/plugin:ro
+      - ./tests:/workspace/tests:ro
+      - ./phpunit.xml.dist:/workspace/phpunit.xml.dist:ro
+    depends_on:
+      db:
+        condition: service_healthy
   web:
     platform: linux/amd64
     build:

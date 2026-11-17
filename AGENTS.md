@@ -31,6 +31,6 @@
 
 - The declared minimum versions are PHP 7.4.0 and WordPress 6.0. Do not introduce newer PHP syntax without an intentional change to supported versions.
 - When changing the release version, keep the PHP header's `Version`, the `Stable tag` in `plugin/readme.txt`, and the changelog consistent. PHP and WordPress requirements appear in both files and must remain consistent as well.
-- The repository has no Composer setup, frontend build, or automated test suite. Check syntax with `bin/dev modern exec -T web php -l wp-content/plugins/static-mail-sender-configurator/static-mail-sender-configurator.php` (also run with `legacy`).
+- The root Composer files contain development-only PHPUnit dependencies. Run `bin/test legacy` and `bin/test modern` for the WordPress integration suite. There is no frontend build. Check syntax with `bin/dev modern exec -T web php -l wp-content/plugins/static-mail-sender-configurator/static-mail-sender-configurator.php` (also run with `legacy`).
 - For behavior changes, verify missing configuration, constant-only configuration, environment-only configuration, and both sources together; string and array headers; and subsequent sender overrides. Verify integration in WordPress: syntax checks alone do not establish correct behavior.
 - Run the development site, database, PHP checks, and test tooling in Docker. Do not use host PHP, Apache, or MySQL for this development environment. Prefer the `jakubboucek/docker-lamp-devstack` images. WordPress core and generated environment data must remain outside tracked plugin source files.

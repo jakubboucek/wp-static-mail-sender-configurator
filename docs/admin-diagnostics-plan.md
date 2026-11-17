@@ -1,6 +1,6 @@
 # Admin diagnostics development plan
 
-This temporary WIP plan describes agreed feature behavior and pending implementation stages. The plugin currently has no admin page or automated regression suite. The Docker development environment is documented in [Local development](development.md). Complete, verify, and commit each stage separately before proceeding. Replace this plan with documentation of the implemented behavior and executable development instructions when the work is complete.
+This temporary WIP plan describes agreed feature behavior and pending implementation stages. The plugin currently has no admin page. Its regression suite protects existing mail behavior. The Docker development environment is documented in [Local development](development.md). Complete, verify, and commit each stage separately before proceeding. Replace this plan with documentation of the implemented behavior and executable development instructions when the work is complete.
 
 ## Agreed scope
 
@@ -17,21 +17,15 @@ This temporary WIP plan describes agreed feature behavior and pending implementa
 
 ## Test requirements for remaining work
 
-Use the Docker environments described in [Local development](development.md). Run all PHP checks inside containers. Add a WordPress PHPUnit test framework matching each core version in stage 1, pin compatible PHPUnit and Polyfills dependencies, and isolate constant configuration scenarios in separate PHP processes. Use only the dedicated test database credentials for destructive test setup. Keep test dependencies outside `plugin/`.
+Use the Docker environments described in [Local development](development.md). Run all PHP checks inside containers. Keep the WordPress PHPUnit framework matched to each core version, pin compatible PHPUnit and Polyfills dependencies, and isolate constant configuration scenarios in separate PHP processes. Use only the dedicated test database credentials for destructive test setup. Keep test dependencies outside `plugin/`.
 
 ## Repository layout
 
 `plugin/` contains the distributable PHP file, WordPress readme, and license. The root license also covers the repository. Packaging and installed paths are described in [release documentation](releases.md).
 
-`docker/`, `compose.yaml`, and `bin/dev` provide local development infrastructure. The planned regression suite will add `tests/` at the repository root. These development files remain outside `plugin/`.
+`docker/`, `compose.yaml`, and `bin/dev` provide local development infrastructure. `tests/`, `phpunit.xml.dist`, the root Composer files, and `bin/test` provide regression testing. These development files remain outside `plugin/`.
 
 ## Pending implementation stages
-
-### 1. Protect existing behavior with tests
-
-Add focused regression tests using actual WordPress hooks and mail processing where appropriate. Cover absent configuration, environment-only, constant-only, both sources, empty constants, string and array headers, sender names, and later sender overrides. Do not replace WordPress integration with mocks alone.
-
-Acceptance: tests pass on the baseline and modern targets before changing runtime behavior. Test fixtures restore environment variables and hooks; constant scenarios remain isolated.
 
 ### 2. Add the admin page and access controls
 

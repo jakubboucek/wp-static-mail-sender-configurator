@@ -1,0 +1,15 @@
+{
+    "name": "jakubboucek/wp-static-mail-sender-configurator",
+    "description": "Development dependencies for plugin integration tests",
+    "type": "project",
+    "license": "MIT",
+    "require-dev": {
+        "phpunit/phpunit": "9.6.39",
+        "yoast/phpunit-polyfills": "1.1.5"
+    },
+    "config": {
+        "platform": { "php": "7.4.33" },
+        "allow-plugins": false,
+        "sort-packages": true
+    }
+}

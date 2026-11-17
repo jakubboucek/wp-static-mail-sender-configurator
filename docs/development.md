@@ -59,7 +59,7 @@ bin/dev modern exec -T web wp --allow-root core version
 bin/dev modern exec -T web wp --allow-root plugin status static-mail-sender-configurator
 ```
 
-WP-CLI is installed in the PHP image by `docker/Dockerfile`; the base LAMP image provides Composer. PHPUnit and the WordPress test suite are not installed yet and belong to the next implementation stage. The PHP image does not provide a database client for `wp db` commands; use the database container's `mariadb` command instead.
+WP-CLI is installed in the PHP image by `docker/Dockerfile`; the base LAMP image provides Composer. PHPUnit and the WordPress test framework are installed in a separate, disposable `tests` service; see the regression test commands below. The PHP image does not provide a database client for `wp db` commands; use the database container's `mariadb` command instead.
 
 ## Mail capture and smoke checks
 
@@ -99,3 +99,38 @@ bin/dev modern exec -T db mariadb -uwordpress_tests -plocal-tests \
 ```
 
 `docker/init-tests.sql` creates the test account on initial database-volume creation. It is not reapplied to an already initialized volume. Modern and legacy databases also remain isolated from each other by separate containers and volumes.
+
+## Automated regression tests
+
+Run either target from the repository root:
+
+```sh
+bin/test legacy
+bin/test modern
+```
+
+`bin/test` builds the test image using Docker's cache and runs PHPUnit in a disposable container. It starts the target's database if needed, but does not start or recreate the web service or MailDev. The `tests` Compose service belongs to an opt-in profile, so normal `up` commands do not launch tests.
+
+The image contains PHPUnit 9.6.39 and PHPUnit Polyfills 1.1.5, with transitive dependencies pinned in the root `composer.lock`. These are development dependencies only and are not part of `plugin/`. WordPress core and its PHPUnit framework come from the matching `wordpress-develop` Git tag (`6.0.0` for WordPress 6.0, `7.1.4` for WordPress 7.1.4). The framework loads the actual plugin via `muplugins_loaded`.
+
+Tests install WordPress into `wordpress_tests` using only the restricted test account. Their core files are inside the disposable container, not the interactive site's volume. Do not run two suites for the same target simultaneously: they share its test database. Modern and legacy can run independently.
+
+Every scenario runs in a separate PHP process with global-state preservation disabled, allowing each to define `WP_MAIL_FROM` independently. Environment variables are restored, the mailer is reset, and WordPress's test base class restores hooks after each test.
+
+The suite covers:
+
+- Early filter registration and unchanged arguments when configuration is absent.
+- Default WordPress sender, constant/environment configuration, precedence, and empty values.
+- Named senders, array headers, LF/CRLF strings, custom headers, and Reply-To preservation.
+- Overrides by later `wp_mail`, `wp_mail_from`, and `wp_mail_from_name` callbacks.
+- Invalid sender failure and the `wp_mail_failed` event.
+
+Mail tests exercise real WordPress filtering and PHPMailer message construction. WordPress's `MockPHPMailer` replaces only transport, capturing MIME headers and body for assertions. They do not deliver messages to MailDev or external addresses; use the smoke checks above to test SMTP transport. A passing suite does not prove external deliverability.
+
+To run a specific scenario:
+
+```sh
+bin/test modern --filter test_constant_takes_precedence_over_environment
+```
+
+PHP and WordPress test dependencies live in containers. An IDE without those libraries configured as external sources may report unresolved WordPress/PHPUnit symbols; the container test run is the executable check.
